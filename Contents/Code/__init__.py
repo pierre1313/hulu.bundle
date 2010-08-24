@@ -15,9 +15,11 @@ MAX_RESULTS          = "150"  # max results for lists
 HULU_HTML_ITEMS     = "http://www.hulu.com/videos/slider?items_per_page=%s&page=%s&season&show_id=%s&sort=original_premiere_date&type=%s" # max_results % page %show_id % episode/clip
 HULU_HTML_ITEMS_alt = "http://www.hulu.com/videos/slider?items_per_page=%s&page=%s&season&show_id=%s&sort=original_premiere_date&category=%s" # max_results % page %show_id % episode/clip
 
-huluListings = 'http://www.hulu.com/browse/search?keyword=&alphabet=All&family_friendly=0&closed_captioned=0&channel=All&subchannel=&network=All&display=%s&decade=All&type=tv&view_as_thumbnail=true&block_num=%s'
+huluListings = 'http://www.hulu.com/browse/search?keyword=&alphabet=All&family_friendly=0&closed_captioned=0&channel=%s&subchannel=&network=All&display=%s&decade=All&type=%s&view_as_thumbnail=true&block_num=%s'
+huluShowInfo = 'http://www.hulu.com/shows/info/%s' #by show alpha id
+huluVideoInfo = 'http://www.hulu.com/videos/info/%s' #by show id #
 
-YAHOO_NAMESPACE  = {'media':'http://search.yahoo.com/mrss/'} 
+YAHOO_NAMESPACE  = {'media':'http://search.yahoo.com/mrss/'}
 # Default artwork and icon(s)
 PLUGIN_ARTWORK      = 'art-default.jpg'
 PLUGIN_ICON_DEFAULT = 'icon-default.jpg'
@@ -94,30 +96,15 @@ def MainMenu():
   dir = MediaContainer()
   dir.noCache=1
   dir.Append(Function(DirectoryItem(myhulu, title="My Hulu")))
-  dir.Append(Function(DirectoryItem(menutv, title="TV")))
-  #dir.Append(Function(DirectoryItem(menumovies, title="Movies")))
-  dir.Append(Function(DirectoryItem(tv_channels, L("Movies")), entry_type="feature_film", xp=TYI % "movie"))
+  dir.Append(Function(DirectoryItem(channels, L("TV")), itemType="tv", display="Shows%20with%20full%20episodes%20only"))
+  dir.Append(Function(DirectoryItem(channels, L("Movies")), itemType="movies", display="Full%20length%20movies%20only"))
   dir.Append(Function(DirectoryItem(menupopular, title="Popular Videos")))
   dir.Append(Function(DirectoryItem(menurecent, title="Recently Added")))
   dir.Append(Function(DirectoryItem(feeds, title=L("Highest Rated Videos")), feedUrl="http://www.hulu.com/feed/highest_rated/videos"))
   dir.Append(Function(DirectoryItem(feeds, title=L("Soon-to-Expire Videos")), feedUrl="http://www.hulu.com/feed/expiring/videos"))
-  #dir.AppendItem(DirectoryItem("hd||" + _L("HD Gallery"), _L("HD Gallery"), ""))
   dir.Append(Function(InputDirectoryItem(Search, title=L("Search Hulu"), prompt=L("Search Hulu"), thumb=R('search.png'))))
   dir.Append(PrefsItem(L("Preferences...")))
-  return dir
-
-def menutv(sender):
-  dir = MediaContainer()
-  dir.Append(Function(DirectoryItem(tv_shows, L("TV Shows")), url="http://www.hulu.com/browse/alphabetical/tv", entry_type="episode", xp=TYI % "episode"))
-  dir.Append(Function(DirectoryItem(tv_channels, L("TV Channels")), entry_type="episode", xp=TYI % "episode"))    
-  #dir.Append(Function(DirectoryItem(tv_channels, L("TV Clips")), entry_type="clips", xp=TYICLIPS))
-  return dir
-  
-def menumovies(sender):
-  dir = MediaContainer()
-  dir.Append(Function(DirectoryItem(tv_channels, L("Movie Channels")), entry_type="feature_film", xp=TYI % "movie"))
-  #dir.Append(Function(DirectoryItem(tv_channels, L("Movie Clips")), entry_type="film_clips", xp=TYICLIPS))
-  return dir   
+  return dir  
   
 def menupopular(sender):
   dir = MediaContainer()
@@ -142,7 +129,6 @@ def myhulu(sender):
     dir = MediaContainer()
     dir.Append(Function(DirectoryItem(viewQueue, L("My Hulu Queue"))))
     #dir.Append(Function(DirectoryItem(feeds, L("My Hulu Queue")), feedUrl="http://www.hulu.com/feed/queue/" + username, sort="reverse"))
-    #these links are dead on their site right now. nice work.
     dir.Append(Function(DirectoryItem(feeds, L("My Hulu Show Recommendations")), feedUrl="http://www.hulu.com/feed/show_recommendations/" + username, feedType="shows"))
     dir.Append(Function(DirectoryItem(feeds, L("My Hulu Video Recommendations")), feedUrl="http://www.hulu.com/feed/recommendations/" + username))
     dir.Append(Function(DirectoryItem(feeds, L("My Hulu Subscriptions")), feedUrl="http://www.hulu.com/feed/subscriptions/" + username, feedType="shows"))
@@ -151,11 +137,14 @@ def myhulu(sender):
   return dir
   
 ####################################################################################################
-def tv_shows(sender, url, entry_type, xp):
+def list_shows(sender, channel, itemType, display):
+  if itemType == 'tv':  entry_type = 'episode'
+  elif itemType == 'movies':  entry_type = 'feature_film'
   dir = MediaContainer(title2=sender.itemTitle)
+  
   i = 0
   while 1:
-    h = HTTP.Request(huluListings % ("Shows%20with%20full%20episodes%20only", i), autoUpdate=True)
+    h = HTTP.Request(huluListings % (channel, display, itemType, i), autoUpdate=True)
     if len(h) < 215:
       break
     rep = 'Element.update("show_list", "'
@@ -166,21 +155,40 @@ def tv_shows(sender, url, entry_type, xp):
       showUrl = s.get('href')
       title = s.xpath('img')[0].get('alt')
       thumb = "http://assets.hulu.com/shows/key_art_" + showUrl.split("?")[0].split("/")[-1].replace("-","_") + ".jpg"
-      dir.Append(Function(DirectoryItem(tv_shows_listings, title=title, thumb=thumb), showUrl=showUrl, fromType="html", entry_type=entry_type))
+      if entry_type == 'episode':
+        dir.Append(Function(DirectoryItem(tv_shows_listings, title=title, thumb=thumb), showUrl=showUrl, fromType="html", entry_type=entry_type))
+      elif entry_type == 'feature_film':
+        dir.Append(Function(DirectoryItem(feature_film_info, title=title, thumb=thumb), showUrl=showUrl, fromType="html", entry_type=entry_type))
     i+=1
-    
   return dir
 
 ####################################################################################################      
+def feature_film_info(sender, showUrl, fromType="feed", entry_type="feature_film"):
+  dir = MediaContainer(title2=sender.itemTitle, viewGroup="InfoList")
+  showHTML = str(HTTP.Request(showUrl, autoUpdate=True))
+  showXML = XML.ElementFromString(showHTML, isHTML=True).xpath('//div[@class="headliner"]')[0]
+  playUrl = showXML.xpath('./a')[0].get('href')
+  jsonObj = JSON.ObjectFromURL(huluVideoInfo % playUrl.split('/')[-2])
+  desc = jsonObj['description']
+  subtitle = jsonObj['air_date'] #+ ' Rated: ' + jsonObj['content_rating']
+  duration = int(jsonObj['duration'])*1000 
+  thumb = jsonObj['thumbnail_url']
+  art = "http://assets.hulu.com/shows/key_art_" + showUrl.split('/')[-1].replace("-","_") + ".jpg"
+  rating = jsonObj['rating']
+  dir.Append(WebVideoItem(playUrl, title=sender.itemTitle, summary=desc, subtitle=subtitle, duration=duration, thumb=thumb, art=art, rating=rating))
+  return dir
+    
+####################################################################################################      
 def tv_shows_listings(sender, showUrl, fromType="feed", entry_type="episode"):
   #episodes for show (go to the show homepage and grab the rss link to parse) 
-  showHTML = str(HTTP.Request(showUrl))
+  showHTML = str(HTTP.Request(showUrl, autoUpdate=True))
+  showXML = XML.ElementFromString(showHTML, isHTML=True)
   if entry_type == "episode" and showHTML.count('"category": "Episodes"'):
     jsonUrl = HULU_HTML_ITEMS_alt
     entry_type = "Episodes"
   else:
     jsonUrl = HULU_HTML_ITEMS
-  rsslink = XML.ElementFromURL(showUrl, isHTML=True, autoUpdate=True).xpath("//a[@class='rss-link']")[0].get('href')
+  rsslink = showXML.xpath("//a[@class='rss-link']")[0].get('href')
   if fromType == "feed":
     dir = populateFromFeed(rsslink, feedType="videos", title=sender.itemTitle)
   else:
@@ -197,66 +205,13 @@ def tv_shows_listings(sender, showUrl, fromType="feed", entry_type="episode"):
   
 ####################################################################################################
 # genre dirs
-def tv_channels(sender, entry_type, xp):
+def channels(sender, itemType, display):
   dir = MediaContainer(title2=sender.itemTitle)
-  if entry_type.count("film") == 0:
-    url = "http://www.hulu.com/browse/alphabetical/" + entry_type + "s"
-  else:
-    url = "http://www.hulu.com/browse/alphabetical/" + entry_type
-  for genre in XML.ElementFromURL(url, cacheTime=LONG_CACHE_INTERVAL, isHTML=True, autoUpdate=True).xpath("//ul[@id='ch_list_expanded']//div[@class='filter-item']/a"):
-    if entry_type == "feature_film":
-      dir.Append(Function(DirectoryItem(feature_film, title=genre.text_content()), url=genre.get("href"), entry_type=entry_type, xp=xp)) 
-    elif entry_type == "film_clips":
-      dir.Append(Function(DirectoryItem(tv_shows, title=genre.text_content()), url=genre.get("href"), entry_type="clip", xp=xp))    
-    else:
-      dir.Append(Function(DirectoryItem(tv_shows, title=genre.text_content()), url=genre.get("href"), entry_type=entry_type, xp=xp)) 
-  return dir
-
-####################################################################################################
-# first, the high level genre dirs
-def feature_film(sender, url, entry_type, xp):
-  # Films in genre.
-  dir = MediaContainer(title2=sender.itemTitle, viewGroup="InfoList")
-  @parallelize
-  def iter():
-    for sh in XML.ElementFromURL(url, isHTML=True, autoUpdate=True).xpath(xp):
-      @task
-      def showMeta(show=sh):
-        try:  
-            show = show.xpath('..//a')[0]
-            #title = showLi.xpath('a[contains(@class,"show-thumb")]')[0].text_content().strip() 
-            url = show.get('href')
-            Log(url)
-            show_name = url.split("/")[-1]
-            art = "http://assets.hulu.com/shows/key_art_" + show_name.split("?")[0].replace("-","_") + ".jpg"
-            site = XML.ElementFromURL(url, cacheTime=LONG_CACHE_INTERVAL, isHTML=True)
-            link = site.xpath("//span[@class='play-button-hover']/a")
-            playurl = link[0].get('href')
-            title = link[0].find('img').get('alt')
-            desc = site.xpath("//div[@class='info'][4]")[0].text
-            thumb = link[0].find('img').get('src')
-            try:
-              subtitle = "Released: " + site.xpath('//div[@class="relative"]/div[12]')[0].text
-            except:
-              subtitle = ""
-            try:  
-              duration = site.xpath('//div[@class="description"]')[0].text_content().split('|')[1].strip()
-              duration_parts = duration.split(":")
-              if len(duration_parts) == 2:
-                hours = 0
-                mins = int(duration_parts[0])
-                secs = int(duration_parts[1])
-              else:
-                hours = int(duration_parts[0])
-                mins = int(duration_parts[1])
-                secs = int(duration_parts[2])
-              duration = str(((hours*3600) + (mins * 60) + secs) * 1000)
-            except:
-              duration = ""
-            dir.Append(WebVideoItem(playurl, title=title, summary=desc, subtitle=subtitle, duration=duration, thumb=thumb, art=art))
-        except:
-            pass
-  dir.Sort("title")
+  h = HTTP.Request(huluListings % ("All", display, itemType, 0), cacheTime=LONG_CACHE_INTERVAL, autoUpdate=True)
+  rep = 'Element.replace("channel", "'
+  h = h.split('\n')[2].replace(rep,'').replace('");','').decode('unicode_escape')
+  for genre in XML.ElementFromString(h, isHTML=True).xpath('//div[@class="cbx-options"]//li'):
+    dir.Append(Function(DirectoryItem(list_shows, title=genre.get("value")), channel=genre.get("value").replace(' ','%20'), itemType=itemType, display=display)) 
   return dir
 
 ####################################################################################################
