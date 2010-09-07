@@ -22,6 +22,12 @@
 	<string>MacOSX</string>
 	<key>PlexFrameworkVersion</key>
 	<string>1</string>
+	<key>PlexClientCapabilities</key>
+	<string>protocols=shoutcast</string>
+	<key>PlexMediaContainer</key>
+	<string>Flash</string>
+	<key>PlexVideoCodec</key>
+	<string>H.264</string>
 	<key>PlexPluginDebug</key>
 	<string>1</string>
 	<key>PlexPluginMode</key>
