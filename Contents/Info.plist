@@ -18,19 +18,23 @@
 	<string>hook</string>
 	<key>CFBundleVersion</key>
 	<string>1.0</string>
+	<key>PlexClientCapabilities</key>
+	<string>protocols=shoutcast</string>
 	<key>PlexClientPlatforms</key>
 	<string>MacOSX</string>
 	<key>PlexFrameworkVersion</key>
 	<string>1</string>
-	<key>PlexClientCapabilities</key>
-	<string>protocols=shoutcast</string>
 	<key>PlexMediaContainer</key>
-	<string>Flash</string>
-	<key>PlexVideoCodec</key>
-	<string>H.264</string>
+	<array>
+		<string>Flash</string>
+	</array>
 	<key>PlexPluginDebug</key>
 	<string>1</string>
 	<key>PlexPluginMode</key>
 	<string>AlwaysOn</string>
+	<key>PlexVideoCodec</key>
+	<array>
+		<string>H.264</string>
+	</array>
 </dict>
 </plist>
