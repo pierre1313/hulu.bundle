@@ -72,7 +72,9 @@ def UpdateCache():
   #else:
   #  cacheLevel = 5
   #walkDir(MainMenu(), cacheLevel, 0) 
-  walkDir(menutv(sender=""), 1, 1, recurse=True)
+  walkDir(myhulu(sender=""), 1, 1, recurse=True)
+  walkDir(channels(sender=""), 1, 1, recurse=True)
+  walkDir(feeds(sender=""), 1, 1, recurse=True)
   walkDir(menumovies(sender=""), 1, 1, recurse=True)
   walkDir(menupopular(sender=""), 1, 1, recurse=True)
   walkDir(menurecent(sender=""), 1, 1, recurse=True)
