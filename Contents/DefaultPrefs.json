@@ -1,0 +1,15 @@
+[
+    {
+        "id": "email",
+        "type": "text",
+        "label": "Email address",
+        "default": "" 
+    },
+    {
+        "id": "password",
+        "type": "text",
+        "label": "Password",
+        "default": "",
+        "option": "hidden" 
+    }
+]
