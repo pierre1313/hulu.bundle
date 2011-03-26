@@ -1,8 +1,5 @@
 import re, random
-from urlparse import urlparse
-from PMS import *
-from PMS.Objects import *
-from PMS.Shortcuts import *
+#from urlparse import urlparse
 
 HULU_PLUGIN_PREFIX   = "/video/hulu" 
 HULU_BASE_URL        = "http://www.hulu.com/"
@@ -37,7 +34,10 @@ def Start():
   MediaContainer.title1    = 'Hulu'
   MediaContainer.viewGroup = 'List'
   MediaContainer.art       = R(PLUGIN_ARTWORK)
-  HTTP.SetCacheTime(CACHE_INTERVAL)
+  
+  DirectoryItem.thumb = R(PLUGIN_ICON_DEFAULT)
+  
+  HTTP.CacheTime = CACHE_INTERVAL
   loginResult = HuluLogin()
   Log("Login success: " + str(loginResult))
   if loginResult:
@@ -45,9 +45,9 @@ def Start():
 
 ####################################################################################################  
 def HuluLogin():
-  username = Prefs.Get("email")
-  password = Prefs.Get("password")
-  resp = HTTP.Request("https://secure.hulu.com/account/authenticate?" + str(int(random.random()*1000000000)), headers={"Cookie":"sli=1; login=" + username + "; password=" + password + ";"})
+  username = Prefs["email"]
+  password = Prefs["password"]
+  resp = HTTP.Request("https://secure.hulu.com/account/authenticate?" + str(int(random.random()*1000000000)), headers={"Cookie":"sli=1; login=" + username + "; password=" + password + ";"}).content
   if resp == "Login.onComplete();":
     return True
   else:
@@ -55,14 +55,7 @@ def HuluLogin():
     
 ####################################################################################################
 def HuluProfileName():
-  return XML.ElementFromURL("http://www.hulu.com/profile", isHTML=True, cacheTime=0).xpath('//a[contains(@href,"/profiles/")]')[0].get('href').split('/')[-1].split('?')[0]
-  
-####################################################################################################
-def CreatePrefs():
-  Prefs.Add(id='email', type='text', default='', label='Email address')
-  #Prefs.Add(id='profilename', type='text', default='', label='Profile URL [in Hulu.com Profile]')
-  Prefs.Add(id='password', type='text', default='', label='Password', option='hidden')
-  #Prefs.Add(id='cacheLevel', type='enum', default='Low', label='Pre-caching Level', values='Low|High')
+  return HTML.ElementFromURL("http://www.hulu.com/profile", cacheTime=0).xpath('//a[contains(@href,"/profiles/")]')[0].get('href').split('/')[-1].split('?')[0]
   
 ####################################################################################################
 def UpdateCache():
@@ -146,14 +139,14 @@ def list_shows(sender, channel, itemType, display):
   
   i = 0
   while 1:
-    h = HTTP.Request(huluListings % (channel, display, itemType, i), autoUpdate=True)
+    h = HTTP.Request(huluListings % (channel, display, itemType, i), autoUpdate=True).content
     if len(h) < 215:
       break
     rep = 'Element.update("show_list", "'
     if h.find(rep) == -1:
       rep = 'Element.replace("browse-lazy-load", '
     h = h.split('\n')[1].replace(rep,'').replace('");','').decode('unicode_escape')
-    for s in XML.ElementFromString(h, isHTML=True).xpath('//a[@class="info_hover"]'):
+    for s in HTML.ElementFromString(h).xpath('//a[@class="info_hover"]'):
       showUrl = s.get('href')
       title = s.xpath('img')[0].get('alt')
       thumb = "http://assets.hulu.com/shows/key_art_" + showUrl.split("?")[0].split("/")[-1].replace("-","_") + ".jpg"
@@ -167,8 +160,8 @@ def list_shows(sender, channel, itemType, display):
 ####################################################################################################      
 def feature_film_info(sender, showUrl, fromType="feed", entry_type="feature_film"):
   dir = MediaContainer(title2=sender.itemTitle, viewGroup="InfoList")
-  showHTML = str(HTTP.Request(showUrl, autoUpdate=True))
-  showXML = XML.ElementFromString(showHTML, isHTML=True).xpath('//div[@class="headliner"]')[0]
+  showHTML = str(HTTP.Request(showUrl, autoUpdate=True).content)
+  showXML = HTML.ElementFromString(showHTML).xpath('//div[@class="headliner"]')[0]
   playUrl = showXML.xpath('./a')[0].get('href')
   jsonObj = JSON.ObjectFromURL(huluVideoInfo % playUrl.split('/')[-2])
   desc = jsonObj['description']
@@ -183,8 +176,8 @@ def feature_film_info(sender, showUrl, fromType="feed", entry_type="feature_film
 ####################################################################################################      
 def tv_shows_listings(sender, showUrl, fromType="feed", entry_type="episode"):
   #episodes for show (go to the show homepage and grab the rss link to parse) 
-  showHTML = str(HTTP.Request(showUrl, autoUpdate=True))
-  showXML = XML.ElementFromString(showHTML, isHTML=True)
+  showHTML = str(HTTP.Request(showUrl, autoUpdate=True).content)
+  showXML = HTML.ElementFromString(showHTML)
   if entry_type == "episode" and showHTML.count('"category": "Episodes"'):
     jsonUrl = HULU_HTML_ITEMS_alt
     entry_type = "Episodes"
@@ -209,10 +202,10 @@ def tv_shows_listings(sender, showUrl, fromType="feed", entry_type="episode"):
 # genre dirs
 def channels(sender, itemType, display):
   dir = MediaContainer(title2=sender.itemTitle)
-  h = HTTP.Request(huluListings % ("All", display, itemType, 0), cacheTime=LONG_CACHE_INTERVAL, autoUpdate=True)
+  h = HTTP.Request(huluListings % ("All", display, itemType, 0), cacheTime=LONG_CACHE_INTERVAL, autoUpdate=True).content
   rep = 'Element.replace("channel", "'
   h = h.split('\n')[2].replace(rep,'').replace('");','').decode('unicode_escape')
-  for genre in XML.ElementFromString(h, isHTML=True).xpath('//div[@class="cbx-options"]//li'):
+  for genre in HTML.ElementFromString(h).xpath('//div[@class="cbx-options"]//li'):
     dir.Append(Function(DirectoryItem(list_shows, title=genre.get("value")), channel=genre.get("value").replace(' ','%20'), itemType=itemType, display=display)) 
   return dir
 
@@ -243,7 +236,7 @@ def Search(sender, query):
 ####################################################################################################
 def viewQueue(sender):
   dir = MediaContainer(title2=sender.itemTitle)  
-  for row in XML.ElementFromURL("http://www.hulu.com/profile/queue?view=list&order=asc&sort=position", cacheTime=0, isHTML=True).xpath("//table[@class='vt']//tr[@class='r' or @class='r first']"):
+  for row in HTML.ElementFromURL("http://www.hulu.com/profile/queue?view=list&order=asc&sort=position", cacheTime=0).xpath("//table[@class='vt']//tr[@class='r' or @class='r first']"):
     #Log(XML.StringFromElement(row))
     #Log(Log(XML.StringFromElement(row.xpath("//input[@type='checkbox']")[0])))
     if row.xpath("td[@class='c4']")[0].text != "Expired":
@@ -273,9 +266,9 @@ def populateFromHTML(show_id, entry_type, title="", jsonUrl=HULU_HTML_ITEMS):
   #figure out what type of slider to use
   
   for page in range(0,int(MAX_RESULTS)/5):
-    response = HTTP.Request(jsonUrl % (5, str(page+1), show_id, entry_type), errors='ignore', cacheTime=CACHE_INTERVAL, autoUpdate=True)
+    response = HTTP.Request(jsonUrl % (5, str(page+1), show_id, entry_type), errors='ignore', cacheTime=CACHE_INTERVAL, autoUpdate=True).content
     if len(response) > 10:
-      for e in XML.ElementFromString(response, isHTML=True).xpath("//li"):
+      for e in HTML.ElementFromString(response).xpath("//li"):
         id = e.xpath("a")[0].get("href")
         show_num = id.split("/")[-2]
         info = JSON.ObjectFromURL(HULU_BASE_URL + "videos/info/" + show_num, cacheTime=LONG_CACHE_INTERVAL)
@@ -304,17 +297,17 @@ def populateFromFeed(url, feedType="videos", sort="normal", title=""):
   else:
     vg = "List"
   dir = MediaContainer(viewGroup=vg, title2=title)
-  feed = XML.ElementFromURL(url, errors='ignore', cacheTime=CACHE_INTERVAL, isHTML=False, autoUpdate=True).xpath("//item")
+  feed = XML.ElementFromURL(url, errors='ignore', cacheTime=CACHE_INTERVAL, autoUpdate=True).xpath("//item")
   if sort == "reverse":
     feed.reverse()
   
   for e in feed:
     try:
-      description = XML.ElementFromString(e.xpath("description")[0].text, True).xpath("//p")[0].text_content()
+      description = HTML.ElementFromString(e.xpath("description")[0].text).xpath("//p")[0].text_content()
     except:
       description = ""
     try:    
-      duration = XML.ElementFromString(e.xpath("description")[0].text, True).xpath("//p")[1].text_content()
+      duration = HTML.ElementFromString(e.xpath("description")[0].text).xpath("//p")[1].text_content()
       durfind = duration.find("Duration:")
       vid_duration = duration[durfind+9:duration.find("Rating",durfind)]
       duration = ""
