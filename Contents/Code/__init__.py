@@ -37,25 +37,51 @@ def Start():
   
   DirectoryItem.thumb = R(PLUGIN_ICON_DEFAULT)
   
+  HTTP.Headers['User-Agent'] = 'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.6; en-US; rv:1.9.2.12) Gecko/20101026 Firefox/3.6.12'
   HTTP.CacheTime = CACHE_INTERVAL
+
   loginResult = HuluLogin()
   Log("Login success: " + str(loginResult))
-  if loginResult:
-    Log("Profile name: " + HuluProfileName())
+  #if loginResult:
+  #  Log("Profile name: " + HuluProfileName())
 
 ####################################################################################################  
 def HuluLogin():
   username = Prefs["email"]
   password = Prefs["password"]
-  resp = HTTP.Request("https://secure.hulu.com/account/authenticate?" + str(int(random.random()*1000000000)), headers={"Cookie":"sli=1; login=" + username + "; password=" + password + ";"}).content
-  if resp == "Login.onComplete();":
-    return True
+  if (username != None) and (password != None):
+    resp = HTTP.Request("https://secure.hulu.com/account/authenticate?" + str(int(random.random()*1000000000)), headers={"Cookie":"sli=1; login=" + username + "; password=" + password + ";"}).content
+    if resp == "Login.onComplete();":
+      Dict['HULU_username'] = HTML.ElementFromURL("http://www.hulu.com/profile").xpath("//td[@class='content']/input[@id='username']")[0].get('value')
+      for item in HTTP.GetCookiesForURL('https://secure.hulu.com/').split(';'):
+        if '_hulu_uname' in item :
+          Dict['_hulu_uname'] = item[13:]
+      return True
+    else:
+      return False
   else:
     return False
     
 ####################################################################################################
 def HuluProfileName():
-  return HTML.ElementFromURL("http://www.hulu.com/profile", cacheTime=0).xpath('//a[contains(@href,"/profiles/")]')[0].get('href').split('/')[-1].split('?')[0]
+  #username = Prefs["email"]
+  #password = Prefs["password"]
+  #Log(HTTP.Request("http://www.hulu.com/profile", headers = {"Cookie":HTTP.GetCookiesForURL('https://secure.hulu.com/')}).content)
+  #Log(HTML.StringFromElement(HTML.ElementFromURL("http://www.hulu.com/profile")))
+  return HTML.ElementFromURL("http://www.hulu.com/profile").xpath("//td[@class='content']/input[@id='username']")[0].get('value') 
+  
+  #Log(HTTP.GetCookiesForURL('https://secure.hulu.com/'))
+  #for item in HTTP.GetCookiesForURL('https://secure.hulu.com/').split(';'):
+  #  if '_hulu_uname' in item :
+  #    Log(item[12:])
+  #    return item[12:]
+  #return 'default'
+  #return (re.search('_hulu_uname=([^&]+);',HTTP.GetCookiesForURL('https://secure.hulu.com/')).group(1))
+  #Log(HTTP.GetCookiesForURL('http://www.hulu.com/'))
+  #Log(HTTP.GetCookiesForURL('http://secure.hulu.com/'))
+  #Log(HTTP.Request("https://secure.hulu.com/profile", cacheTime=0))
+  #return HTML.ElementFromURL("https://secure.hulu.com/profile", cacheTime=0).xpath('//a[contains(@href,"/profiles/")]')[0].get('href').rsplit('/')[1].split('?')[0]
+  #return "pierre"
   
 ####################################################################################################
 def UpdateCache():
@@ -88,7 +114,7 @@ def walkDir(dir, cacheLevel, currentLevel, recurse=False):
         
 ####################################################################################################
 def MainMenu():
-  dir = MediaContainer()
+  dir = MediaContainer(httpCookies=HTTP.GetCookiesForURL('https://secure.hulu.com/'))
   dir.noCache=1
   dir.Append(Function(DirectoryItem(myhulu, title="My Hulu")))
   dir.Append(Function(DirectoryItem(channels, L("TV")), itemType="tv", display="Shows%20with%20full%20episodes%20only"))
@@ -120,13 +146,13 @@ def myhulu(sender):
   loginResult = HuluLogin()  
   Log("myhulu Login success: " + str(loginResult))
   if loginResult:
-    username = HuluProfileName()
-    dir = MediaContainer()
-    dir.Append(Function(DirectoryItem(viewQueue, L("My Hulu Queue"))))
-    #dir.Append(Function(DirectoryItem(feeds, L("My Hulu Queue")), feedUrl="http://www.hulu.com/feed/queue/" + username, sort="reverse"))
-    dir.Append(Function(DirectoryItem(feeds, L("My Hulu Show Recommendations")), feedUrl="http://www.hulu.com/feed/show_recommendations/" + username, feedType="shows"))
-    dir.Append(Function(DirectoryItem(feeds, L("My Hulu Video Recommendations")), feedUrl="http://www.hulu.com/feed/recommendations/" + username))
-    dir.Append(Function(DirectoryItem(feeds, L("My Hulu Subscriptions")), feedUrl="http://www.hulu.com/feed/subscriptions/" + username, feedType="shows"))
+    #username = HuluProfileName()
+    dir = MediaContainer(httpCookies=HTTP.GetCookiesForURL('http://www.hulu.com/'))
+    #dir.Append(Function(DirectoryItem(viewQueue, L("My Hulu Queue"))))
+    dir.Append(Function(DirectoryItem(feeds, L("My Hulu Queue")), feedUrl="http://www.hulu.com/feed/queue/" + Dict['HULU_username'], feedType="videos", sort="reverse"))
+    dir.Append(Function(DirectoryItem(feeds, L("My Hulu Show Recommendations")), feedUrl="http://www.hulu.com/feed/show_recommendations/" + Dict['HULU_username'], feedType="shows"))
+    dir.Append(Function(DirectoryItem(feeds, L("My Hulu Video Recommendations")), feedUrl="http://www.hulu.com/feed/recommendations/" + Dict['HULU_username']))
+    dir.Append(Function(DirectoryItem(feeds, L("My Hulu Subscriptions")), feedUrl="http://www.hulu.com/feed/subscriptions/" + Dict['HULU_username'], feedType="shows"))
   else:
     dir = MessageContainer("User info required", "Please enter your Hulu email address and password in Preferences.")
   return dir
@@ -235,7 +261,7 @@ def Search(sender, query):
 
 ####################################################################################################
 def viewQueue(sender):
-  dir = MediaContainer(title2=sender.itemTitle)  
+  dir = MediaContainer(title2=sender.itemTitle,httpCookies = HTTP.GetCookiesForURL('https://secure.hulu.com/'))  
   for row in HTML.ElementFromURL("http://www.hulu.com/profile/queue?view=list&order=asc&sort=position", cacheTime=0).xpath("//table[@class='vt']//tr[@class='r' or @class='r first']"):
     #Log(XML.StringFromElement(row))
     #Log(Log(XML.StringFromElement(row.xpath("//input[@type='checkbox']")[0])))
