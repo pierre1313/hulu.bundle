@@ -1,5 +1,4 @@
 import re, random
-#from urlparse import urlparse
 
 HULU_PLUGIN_PREFIX   = "/video/hulu" 
 HULU_BASE_URL        = "http://www.hulu.com/"
@@ -54,10 +53,7 @@ def Start():
 
   loginResult = HuluLogin()
   Log("Login success: " + str(loginResult))
-  #if loginResult:
-  #  Log("Profile name: " + HuluProfileName())
-
-
+  
 ####################################################################################################  
 
 import urllib2, httplib
@@ -87,11 +83,9 @@ def HuluLogin():
   if (username != None) and (password != None):
     resp = HTTP.Request("https://secure.hulu.com/account/authenticate?" + str(int(random.random()*1000000000)), headers={"Cookie":"sli=1; login=" + username + "; password=" + password + ";"},cacheTime=0).content
     if resp == "Login.onComplete();":
-      Log(HTTP.Request("http://www.hulu.com/profile").content)
       Dict['HULU_username'] = HTML.ElementFromURL("https://www.hulu.com/profile",cacheTime=0,headers={"Cookie":HTTP.GetCookiesForURL('http://www.hulu.com/')}).xpath("//td[@class='content']/input[@id='username']")[0].get('value')
       HTTP.Headers['Cookie'] = HTTP.GetCookiesForURL('https://secure.hulu.com/')
       for item in HTTP.GetCookiesForURL('https://secure.hulu.com/').split(';'):
-        Log(item)
         if '_hulu_uname' in item :
           Dict['_hulu_uname'] = item[13:]
         if '_hulu_uid' in item :
@@ -101,36 +95,9 @@ def HuluLogin():
       return False
   else:
     return False
-    
-####################################################################################################
-def HuluProfileName():
-  #username = Prefs["email"]
-  #password = Prefs["password"]
-  #Log(HTTP.Request("http://www.hulu.com/profile", headers = {"Cookie":HTTP.GetCookiesForURL('https://secure.hulu.com/')}).content)
-  #Log(HTML.StringFromElement(HTML.ElementFromURL("http://www.hulu.com/profile")))
-  return HTML.ElementFromURL("http://www.hulu.com/profile").xpath("//td[@class='content']/input[@id='username']")[0].get('value') 
-  
-  #Log(HTTP.GetCookiesForURL('https://secure.hulu.com/'))
-  #for item in HTTP.GetCookiesForURL('https://secure.hulu.com/').split(';'):
-  #  if '_hulu_uname' in item :
-  #    Log(item[12:])
-  #    return item[12:]
-  #return 'default'
-  #return (re.search('_hulu_uname=([^&]+);',HTTP.GetCookiesForURL('https://secure.hulu.com/')).group(1))
-  #Log(HTTP.GetCookiesForURL('http://www.hulu.com/'))
-  #Log(HTTP.GetCookiesForURL('http://secure.hulu.com/'))
-  #Log(HTTP.Request("https://secure.hulu.com/profile", cacheTime=0))
-  #return HTML.ElementFromURL("https://secure.hulu.com/profile", cacheTime=0).xpath('//a[contains(@href,"/profiles/")]')[0].get('href').rsplit('/')[1].split('?')[0]
-  #return "pierre"
-  
+ 
 ####################################################################################################
 def UpdateCache():
-  #cacheLevel = Prefs.Get("cacheLevel")
-  #if cacheLevel = "Low":
-  #  cacheLevel = 2
-  #else:
-  #  cacheLevel = 5
-  #walkDir(MainMenu(), cacheLevel, 0) 
   walkDir(myhulu(sender=""), 1, 1, recurse=True)
   walkDir(channels(sender=""), 1, 1, recurse=True)
   walkDir(feeds(sender=""), 1, 1, recurse=True)
@@ -139,16 +106,13 @@ def UpdateCache():
   walkDir(menurecent(sender=""), 1, 1, recurse=True)
 
 def walkDir(dir, cacheLevel, currentLevel, recurse=False):
-  #Log("cacheLevel:" + str(cacheLevel) + " currentLevel: " + str(currentLevel))
   for item in dir:
     try:
       if currentLevel <= cacheLevel and ObjectManager.ObjectHasBase(item, Function):   
         if recurse:
           pass
-          #walkDir(item._Function__obj.key(ItemInfoRecord(), **item._Function__kwargs), cacheLevel, currentLevel+1, recurse=True)
         else:
           pass
-          #x = item._Function__obj.key(ItemInfoRecord(), **item._Function__kwargs)
     except:
       pass
         
@@ -186,9 +150,7 @@ def myhulu(sender):
   loginResult = HuluLogin()  
   Log("myhulu Login success: " + str(loginResult))
   if loginResult:
-    #username = HuluProfileName()
     dir = MediaContainer(httpCookies = HTTP.GetCookiesForURL('http://www.hulu.com/profile'))
-    #dir.Append(Function(DirectoryItem(viewQueue, L("My Hulu Queue"))))
     dir.Append(Function(DirectoryItem(feeds, L("My Hulu Queue")), feedUrl="http://www.hulu.com/feed/queue/" + Dict['HULU_username'], feedType="videos", sort="reverse"))
     dir.Append(Function(DirectoryItem(feeds, L("My Hulu Show Recommendations")), feedUrl="http://www.hulu.com/feed/show_recommendations/" + Dict['HULU_username'], feedType="shows"))
     dir.Append(Function(DirectoryItem(feeds, L("My Hulu Video Recommendations")), feedUrl="http://www.hulu.com/feed/recommendations/" + Dict['HULU_username']))
@@ -226,14 +188,7 @@ def list_shows(sender, channel, itemType, display):
 ####################################################################################################      
 def feature_film_info(sender, showUrl, fromType="feed", entry_type="feature_film"):
   dir = MediaContainer(title2=sender.itemTitle, viewGroup="InfoList",httpCookies=HTTP.GetCookiesForURL('https://secure.hulu.com'))
-  #showHTML = str(HTTP.Request(showUrl, autoUpdate=True).content)
-  #showXML = HTML.ElementFromString(showHTML).xpath('//div[@class="headliner"]')[0]
-  #playUrl = showXML.xpath('./a')[0].get('href')
-  #jsonObj = JSON.ObjectFromURL(huluVideoInfo % playUrl.split('/')[-2])
-  #Log(showUrl.split('?')[0])
-  #showUrl = showUrl.split('?')[0]
   try:
-    Log("TRYING")
     resp = HTTP.Request(showUrl).content
     playUrl = showUrl
     
@@ -242,47 +197,30 @@ def feature_film_info(sender, showUrl, fromType="feed", entry_type="feature_film
     f = opener.open(request)
     if f.status == 301 or f.status == 302:
       playUrl = re.findall('<meta property="og:url" content="([^&]+)"',HTTP.Request(f.url).content)[0].split('"')[0]
-    Log(playUrl)
   except Ex.HTTPError, error:
-    Log("ERROR")
     playUrl = re.findall('<meta property="og:url" content="([^&]+)"',error.content)[0].split('"')[0]
-    Log(playUrl)
-
+    
   api_address = "http://www.hulu.com/api/oembed.json?url="+playUrl
   try:
     jsonObj = JSON.ObjectFromURL(api_address)
   except:
     jsonObj = JSON.ObjectFromURL(api_address.rsplit('/')[0])
-   #
-#  try:
-#    desc = jsonObj['description']
-#  except: 
-#    desc = ''
-#  subtitle = jsonObj['air_date'] #+ ' Rated: ' + jsonObj['content_rating']
-#  duration = int(jsonObj['duration'])*1000 
-#  thumb = jsonObj['thumbnail_url']
-#  art = ""#http://assets.hulu.com/shows/key_art_" + showUrl.split('/')[-1].replace("-","_") + ".jpg"
-#  try: rating = jsonObj['rating']
-#  except: rating = None
-  #playUrl = HULU_EMBEDDED % (String.Quote(api_address) , jsonObj['embed_url'].split('/embed/')[1].split('/')[0])
-#  Log(playUrl)
-#  title = jsonObj['title']
   eid = jsonObj['embed_url'].split('embed/')[1].split('/')[0]
     
   details = XML.ElementFromURL(HULU_ASSETS %eid)
   
   desc = details.xpath('//video/description')[0].text
-  subtitle =  details.xpath('//video/copyright')[0].text#jsonObj['air_date'] #+ ' Rated: ' + jsonObj['content_rating']
-  duration =  int(float(details.xpath('//video/duration')[0].text)*1000)#int(jsonObj['duration'])*1000 
-  thumb = details.xpath('//video/thumbnail-url')[0].text#jsonObj['thumbnail_url']
-  art = ""#http://assets.hulu.com/shows/key_art_" + showUrl.split('/')[-1].replace("-","_") + ".jpg"
-  rating =  float(details.xpath('//video/user-star-rating')[0].text)#jsonObj['rating']
+  subtitle =  details.xpath('//video/copyright')[0].text
+  duration =  int(float(details.xpath('//video/duration')[0].text)*1000)
+  thumb = details.xpath('//video/thumbnail-url')[0].text
+  art = ""
+  rating =  float(details.xpath('//video/user-star-rating')[0].text)
   plusonly =  details.xpath('//video/is-plus-web-only')[0].text
   if (plusonly == 'true'):
     plustext = "HuluPlus - "
   else:
     plustext = ""
-  title =  plustext + details.xpath('//video/title')[0].text#jsonObj['title']
+  title =  plustext + details.xpath('//video/title')[0].text
  
   dir.Append(WebVideoItem(playUrl, title=title, summary=desc, subtitle=subtitle, duration=duration, thumb=thumb, art=art, rating=rating))
   
@@ -307,7 +245,6 @@ def tv_shows_listings(sender, showUrl, fromType="feed", entry_type="episode"):
   else:
     if entry_type == "episode":
       if rsslink.count("episodes") > 0:
-        Log('episodes > 0') 
         entry_type = "episode"
       elif rsslink.count("videos") > 0 or rsslink.count("clip") > 0:
         entry_type = "clip"
@@ -358,12 +295,10 @@ def Search(sender, query):
 def viewQueue(sender):
   dir = MediaContainer(title2=sender.itemTitle,httpCookies = HTTP.GetCookiesForURL('http://www.hulu.com/profile'))  
   for row in HTML.ElementFromURL("http://www.hulu.com/profile/queue?view=list&order=asc&sort=position", cacheTime=0).xpath("//table[@class='vt']//tr[@class='r' or @class='r first']"):
-    #Log(XML.StringFromElement(row))
-    #Log(Log(XML.StringFromElement(row.xpath("//input[@type='checkbox']")[0])))
     if row.xpath("td[@class='c4']")[0].text != "Expired":
       show_num = row.xpath("td/input[@type='checkbox']")[0].get("value")
       info = JSON.ObjectFromURL(HULU_BASE_URL + "videos/info/" + show_num, cacheTime=LONG_CACHE_INTERVAL)
-      #Log(info)
+
       thumb = info["thumbnail_url"]
       title = info["show_name"] + ": " + info["title"]
       desc = info["description"]
@@ -429,33 +364,20 @@ def populateFromFeed(url, feedType="videos", sort="normal", title=""):
     vg = "List"
   dir = MediaContainer(viewGroup=vg, title2=title,httpCookies = HTTP.GetCookiesForURL('http://www.hulu.com/profile'))
   feed = XML.ElementFromURL(url, errors='ignore', cacheTime=CACHE_INTERVAL, autoUpdate=True).xpath("//item")
-  #if sort == "reverse":
-  #  feed.reverse()
-  Log(feed)
+  if sort == "reverse":
+    feed.reverse()
+
   @parallelize  
   def iter():
     for e in feed:
       @task  
       def Metadata(e=e):
-  # try:
-   #   description = HTML.ElementFromString(e.xpath("description")[0].text).xpath("//p")[0].text_content()
-   # except:
-   #   description = ""
-   # try:    
-   #   duration = HTML.ElementFromString(e.xpath("description")[0].text).xpath("//p")[1].text_content()
-   #   durfind = duration.find("Duration:")
-   #   vid_duration = duration[durfind+9:duration.find("Rating",durfind)]
-   #   duration = ""
-   #   duration_parts = vid_duration.partition(":")
-   #  if duration_parts[0] == "" or duration_parts[0] == " ": mins = 0
-   #   else: mins = int(duration_parts[0])
-   #   duration = str(((mins * 60) + int(duration_parts[2])) * 1000)
-   # except:
-   #   duration = ""
-      
-    #might be useful for fanart setting...
         playUrl = e.xpath("guid")[0].text.split("#")[0]#.replace(':',"%3A")
-    
+        titleFromFeed = e.xpath("title")[0].text.split('-')
+        if len(titleFromFeed) > 1:
+          seasonEpisode = titleFromFeed[1].replace('e','E').replace('s',"Season ").replace('|',' ').replace('E',"Episode ")
+          titleFromFeed = titleFromFeed[0] + '-' + titleFromFeed[2]
+        
         if not(('watch' in playUrl)):
 		  request = urllib2.Request(playUrl, None, headers)
 		  opener = urllib2.build_opener(SmartRedirectHandler)
@@ -464,7 +386,6 @@ def populateFromFeed(url, feedType="videos", sort="normal", title=""):
 			if f.status == 301 or f.status == 302:
 			  playUrl = f.url
 			  playUrl = HTTP.Request(playUrl).xpath("//meta[@'property=og:url']")[0].get('content')
-			Log(playUrl)
 		  except:
 			pass
 		  
@@ -479,29 +400,30 @@ def populateFromFeed(url, feedType="videos", sort="normal", title=""):
         details = XML.ElementFromURL(HULU_ASSETS %eid)
 	  
         desc = details.xpath('//video/description')[0].text
-        subtitle =  details.xpath('//video/copyright')[0].text#jsonObj['air_date'] #+ ' Rated: ' + jsonObj['content_rating']
-        duration =  int(float(details.xpath('//video/duration')[0].text)*1000)#int(jsonObj['duration'])*1000 
-        thumb = details.xpath('//video/thumbnail-url')[0].text#jsonObj['thumbnail_url']
-        art = ""#http://assets.hulu.com/shows/key_art_" + showUrl.split('/')[-1].replace("-","_") + ".jpg"
-        rating =  float(details.xpath('//video/user-star-rating')[0].text)#jsonObj['rating']
-		#playUrl = jsonObj['embed_url']
+        airdate = Datetime.ParseDate(details.xpath('//video/original-premiere-date')[0].text).strftime('%a %b %d, %Y')
+        if seasonEpisode :
+          subtitle =  seasonEpisode + ' - ' + airdate
+        else:
+          subtitle = airdate
+        duration =  int(float(details.xpath('//video/duration')[0].text)*1000)
+        thumb = details.xpath('//video/thumbnail-url')[0].text
+        art = ""
+        rating =  float(details.xpath('//video/user-star-rating')[0].text)
         plusonly =  details.xpath('//video/is-plus-web-only')[0].text
         if (plusonly == 'true'):
           plustext = "HuluPlus - "
         else:
           plustext = ""
-        title =  plustext + details.xpath('//video/title')[0].text#jsonObj['title']
+        title =  plustext + titleFromFeed#details.xpath('//video/title')[0].text
         
         if feedType == "videos":
-          dirItem = WebVideoItem(playUrl, title=title.strip(), subtitle=subtitle, summary=desc, duration=duration, thumb=thumb)
+          dirItem = WebVideoItem(playUrl, title=title.strip(), subtitle=subtitle, summary=desc, duration=duration, thumb=thumb,rating = rating)
         else:
           url = playUrl
           id = url.split("/")[-1]
           thumb = "http://assets.hulu.com/shows/key_art_" + id.replace("-","_") + ".jpg"
           art = "http://assets.hulu.com/shows/key_art_" + id.replace("-","_") + ".jpg"
           dirItem = Function(DirectoryItem(tv_shows_listings, title=title, subtitle=subtitle, art=art, thumb=thumb), showUrl=url, fromType="html")
-        #if match:
-        #  dirItem.SetTelevisonMetadata(match.group(1), match.group(3), match.group(4))
         dir.Append(dirItem)
     
   if len(dir) == 0:
