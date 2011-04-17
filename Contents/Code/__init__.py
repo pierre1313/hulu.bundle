@@ -33,7 +33,7 @@ TYICLIPS = '//table//li'
 
 USER_AGENT = 'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.6; en-US; rv:1.9.2.12) Gecko/20101026 Firefox/3.6.12'
 
-headers = {'User-agent': USER_AGENT}
+headers = {'User-Agent': USER_AGENT}
     
 profilename = ''
 
