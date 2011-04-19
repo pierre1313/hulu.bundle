@@ -294,7 +294,7 @@ def Search(sender, query):
 ####################################################################################################
 def viewQueue(sender):
   dir = MediaContainer(title2=sender.itemTitle,httpCookies = HTTP.GetCookiesForURL('http://www.hulu.com/profile'))  
-  for row in HTML.ElementFromURL("http://www.hulu.com/profile/queue?view=list&order=asc&sort=position", cacheTime=0).xpath("//table[@class='vt']//tr[@class='r' or @class='r first']"):
+  for row in HTML.ElementFromURL("http://www.hulu.com/profile/queue?view=list&order=asc&sort=position&kind=list", cacheTime=0).xpath("//table[@class='vt']//tr[@class='r'  or @class='r hide-item first']"):
     if row.xpath("td[@class='c4']")[0].text != "Expired":
       show_num = row.xpath("td/input[@type='checkbox']")[0].get("value")
       info = JSON.ObjectFromURL(HULU_BASE_URL + "videos/info/" + show_num, cacheTime=LONG_CACHE_INTERVAL)
@@ -402,7 +402,7 @@ def populateFromFeed(url, feedType="videos", sort="normal", title=""):
         desc = details.xpath('//video/description')[0].text
         airdate = Datetime.ParseDate(details.xpath('//video/original-premiere-date')[0].text).strftime('%a %b %d, %Y')
         if seasonEpisode :
-          subtitle =  seasonEpisode + ' - ' + airdate
+          subtitle =  seasonEpisode.strip() + ' - ' + airdate
         else:
           subtitle = airdate
         duration =  int(float(details.xpath('//video/duration')[0].text)*1000)
