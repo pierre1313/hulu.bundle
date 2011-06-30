@@ -1,0 +1,97 @@
+####################################################################################################
+
+
+HULU_ASSETS = 'http://r.hulu.com/videos?eid=%s&include=video_assets'
+
+def MetadataObjectForURL(url):
+  
+  print "fetch metadata"
+
+  api_address = "http://www.hulu.com/api/oembed.json?url="+url
+  Log(api_address)
+  try:
+    jsonObj = JSON.ObjectFromURL(api_address)
+  except: 
+    jsonObj = JSON.ObjectFromURL(api_address.rsplit('/',1)[0])
+		  
+  eid = jsonObj['embed_url'].split('embed/')[1].split('/')[0]
+		
+  details = XML.ElementFromURL(HULU_ASSETS %eid)
+	  
+  desc = details.xpath('//video/description')[0].text
+  airdate = Datetime.ParseDate(details.xpath('//video/original-premiere-date')[0].text).date()
+
+  duration =  int(float(details.xpath('//video/duration')[0].text)*1000)
+  thumb = details.xpath('//video/thumbnail-url')[0].text
+  
+  rating =  float(details.xpath('//video/user-star-rating')[0].text)
+  plusonly =  details.xpath('//video/is-plus-web-only')[0].text
+  if (plusonly == 'true'):
+    plustext = "HuluPlus - "
+  else:
+    plustext = ""
+  title =  plustext + details.xpath('//video/title')[0].text
+  
+  try:
+    show_title = details.xpath('//video/show/name')[0].text
+    season = details.xpath('//video/season-number')[0].text
+    episode = details.xpath('//video/episode-number')[0].text
+  
+    # Construct a metadata item
+    obj = EpisodeObject(
+      title = title,
+      show = show_title,
+      duration = duration,
+      season = int(season),
+      index = int(episode),
+      originally_available_at = airdate,
+      summary = desc,
+      source_title = 'Hulu',
+      thumb = thumb
+    )
+  except:
+    obj = MovieObject(
+      title = title,
+      duration = duration,
+      originally_available_at = airdate,
+      summary = desc,
+      source_title = 'Hulu',
+      thumb = thumb
+    )
+  return obj
+
+####################################################################################################
+def MediaObjectsForURL(url):
+
+  api_address = "http://www.hulu.com/api/oembed.json?url="+url
+  Log(api_address)
+  try:
+    jsonObj = JSON.ObjectFromURL(api_address)
+  except: 
+    jsonObj = JSON.ObjectFromURL(api_address.rsplit('/',1)[0])
+		  
+  eid = jsonObj['embed_url'].split('embed/')[1].split('/')[0]
+		
+  details = XML.ElementFromURL(HULU_ASSETS %eid)
+
+  hd =  details.xpath('//video/show/has-hd')[0].text
+  if (hd == 'true'):
+     video_resolution = '480'
+  else:
+     video_resolution = 'sd'
+
+  return [(MediaObject(
+      parts = [PartObject(key=Callback(PlayVideo, url=url))],
+      protocols = [Protocol.WebKit],
+      video_resolution = video_resolution,
+      audio_channels = 2
+        )
+      )
+    ]
+
+
+####################################################################################################
+
+def PlayVideo(url):
+
+  return Redirect(WebVideoURL(url))
