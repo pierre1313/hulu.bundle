@@ -1,0 +1,82 @@
+CACHE_INTERVAL = 3600
+HULU_ASSETS = 'http://r.hulu.com/videos?eid=%s&include=video_assets'
+
+def Search(query):
+
+  # Create a container to hold the results
+  c = ObjectContainer()
+
+  query = query.replace(" ","+") + "+site:hulu"
+  SearchURL = "http://www.hulu.com/feed/search?query=" + query + "&sort_by=relevance"
+  
+  feed = XML.ElementFromURL(SearchURL, errors='ignore', cacheTime=CACHE_INTERVAL).xpath("//item")
+ 
+  for e in feed:
+
+      playUrl = e.xpath("guid")[0].text.split("#")[0]#.replace(':',"%3A")
+        
+      if not(('watch' in playUrl)):
+        request = urllib2.Request(playUrl, None, headers)
+        opener = urllib2.build_opener(SmartRedirectHandler)
+        try:
+          f = opener.open(request)
+          if f.status == 301 or f.status == 302:
+		    playUrl = f.url
+		    playUrl = HTTP.Request(playUrl).xpath("//meta[@'property=og:url']")[0].get('content')
+        except:
+          pass
+		  
+      api_address = "http://www.hulu.com/api/oembed.json?url="+playUrl
+      try:
+        jsonObj = JSON.ObjectFromURL(api_address)
+      except: 
+        jsonObj = JSON.ObjectFromURL(api_address.rsplit('/',1)[0])
+		  
+      eid = jsonObj['embed_url'].split('embed/')[1].split('/')[0]
+
+      details = XML.ElementFromURL(HULU_ASSETS %eid)
+	  
+      desc = details.xpath('//video/description')[0].text
+      try:
+        airdate = Datetime.ParseDate(details.xpath('//video/original-premiere-date')[0].text).date()
+      except:
+        airdate = Datetime.ParseDate(details.xpath('//video/first-available-at')[0].text).date()
+      duration =  int(float(details.xpath('//video/duration')[0].text)*1000)
+      thumb = details.xpath('//video/thumbnail-url')[0].text
+      art = ""
+      rating =  float(details.xpath('//video/user-star-rating')[0].text)
+      plusonly =  details.xpath('//video/is-plus-web-only')[0].text
+      if (plusonly == 'true'):
+        plustext = "HuluPlus - "
+      else:
+        plustext = ""
+      title =  plustext + details.xpath('//video/title')[0].text
+      
+      try:
+        show_title = details.xpath('//video/show/name')[0].text
+        season = details.xpath('//video/season-number')[0].text
+        episode = details.xpath('//video/episode-number')[0].text
+
+        c.add(EpisodeObject(
+          title = title,
+          show = show_title,
+          duration = duration,
+          season = season,
+          index = episode,
+          originally_available_at = airdate,
+          summary = desc,
+          source_title = 'Hulu',
+          thumb = thumb
+        ))
+      except:
+        c.add(VideoClipObject(
+          title = title,
+          duration = duration,
+          summary = desc,
+          thumb = thumb,
+          source_title = 'Hulu',
+          originally_available_at = airdate,
+          url = playUrl
+        ))
+
+  return c

@@ -8,7 +8,7 @@ def MetadataObjectForURL(url):
   print "fetch metadata"
 
   api_address = "http://www.hulu.com/api/oembed.json?url="+url
-  Log(api_address)
+  
   try:
     jsonObj = JSON.ObjectFromURL(api_address)
   except: 
