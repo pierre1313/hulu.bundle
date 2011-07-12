@@ -82,8 +82,10 @@ def HuluLogin():
   password = Prefs["password"]
   if (username != None) and (password != None):
     resp = HTTP.Request("https://secure.hulu.com/account/authenticate?" + str(int(random.random()*1000000000)), headers={"Cookie":"sli=1; login=" + username + "; password=" + password + ";"},cacheTime=0).content
+    
     if resp == "Login.onComplete();":
-      Dict['HULU_username'] = HTML.ElementFromURL("https://www.hulu.com/profile",cacheTime=0,headers={"Cookie":HTTP.GetCookiesForURL('http://www.hulu.com/')}).xpath("//td[@class='content']/input[@id='username']")[0].get('value')
+      resp = HTTP.Request("http://www.hulu.com/profile/queue", headers={"Cookie":HTTP.GetCookiesForURL('https://secure.hulu.com/')}).content
+      Dict['HULU_username'] = HTML.ElementFromString(resp).xpath("//div/a[@class='rss']")[0].get('href').rsplit('/')[-1]
       HTTP.Headers['Cookie'] = HTTP.GetCookiesForURL('https://secure.hulu.com/')
       for item in HTTP.GetCookiesForURL('https://secure.hulu.com/').split(';'):
         if '_hulu_uname' in item :
