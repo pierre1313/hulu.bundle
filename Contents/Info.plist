@@ -28,24 +28,6 @@
 	</array>
 	<key>PlexPluginMode</key>
 	<string>AlwaysOn</string>
-	<key>PlexPluginDevMode</key>
-	<string>1</string>
-	<key>PlexURLServices</key>
-	<dict>
-		<key>Hulu</key>
-		<dict>
-			<key>URLPattern</key>
-			<string>.*hulu.com/.*</string>
-			<key>LinkedPlugin</key>
-			<string>com.plexapp.plugins.hulu</string>
-			<key>TestURLs</key>
-			<array>
-				<string>http://www.hulu.com/watch/215794/city-lights?c=Classics</string>
-				<string>http://www.hulu.com/watch/93426/100-girls</string>
-				<string>http://www.hulu.com/watch/252172/tiger-and-bunny-confidence-is-a-plant-of-slow-growth</string>
-			</array>
-		</dict>
-	</dict>
 	<key>PlexSearchServices</key>
     <dict>
 		<key>Hulu</key>
