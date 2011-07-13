@@ -82,8 +82,9 @@ def HuluLogin():
   password = Prefs["password"]
   if (username != None) and (password != None):
     resp = HTTP.Request("https://secure.hulu.com/account/authenticate?" + str(int(random.random()*1000000000)), headers={"Cookie":"sli=1; login=" + username + "; password=" + password + ";"},cacheTime=0).content
+    
     if resp == "Login.onComplete();":
-      Dict['HULU_username'] = HTML.ElementFromURL("https://www.hulu.com/profile",cacheTime=0,headers={"Cookie":HTTP.GetCookiesForURL('http://www.hulu.com/')}).xpath("//td[@class='content']/input[@id='username']")[0].get('value')
+      Dict['HULU_username'] = HTML.ElementFromURL("http://www.hulu.com/profile/queue", headers={"Cookie":HTTP.GetCookiesForURL('https://secure.hulu.com/')}).xpath("//div/a[@class='rss']")[0].get('href').rsplit('/')[-1]
       HTTP.Headers['Cookie'] = HTTP.GetCookiesForURL('https://secure.hulu.com/')
       for item in HTTP.GetCookiesForURL('https://secure.hulu.com/').split(';'):
         if '_hulu_uname' in item :
@@ -167,7 +168,7 @@ def list_shows(sender, channel, itemType, display):
   
   i = 0
   while 1:
-    h = HTTP.Request(huluListings % (channel, display, itemType, i), autoUpdate=True).content
+    h = HTTP.Request(huluListings % (channel, display, itemType, i)).content
     if len(h) < 215:
       break
     rep = 'Element.update("show_list", "'
@@ -232,7 +233,7 @@ def feature_film_info(sender, showUrl, fromType="feed", entry_type="feature_film
 ####################################################################################################      
 def tv_shows_listings(sender, showUrl, fromType="feed", entry_type="episode"):
   #episodes for show (go to the show homepage and grab the rss link to parse) 
-  showHTML = str(HTTP.Request(showUrl, autoUpdate=True).content)
+  showHTML = str(HTTP.Request(showUrl).content)
   showXML = HTML.ElementFromString(showHTML)
   if entry_type == "episode" and showHTML.count('"category": "Episodes"'):
     jsonUrl = HULU_HTML_ITEMS_alt
@@ -260,7 +261,7 @@ def tv_shows_listings(sender, showUrl, fromType="feed", entry_type="episode"):
 # genre dirs
 def channels(sender, itemType, display):
   dir = MediaContainer(title2=sender.itemTitle,httpCookies = HTTP.GetCookiesForURL('http://www.hulu.com/profile'))
-  h = HTTP.Request(huluListings % ("All", display, itemType, 0), cacheTime=LONG_CACHE_INTERVAL, autoUpdate=True).content
+  h = HTTP.Request(huluListings % ("All", display, itemType, 0), cacheTime=LONG_CACHE_INTERVAL).content
   rep = 'Element.replace("channel", "'
   h = h.split('\n')[2].replace(rep,'').replace('");','').decode('unicode_escape')
   for genre in HTML.ElementFromString(h).xpath('//div[@class="cbx-options"]//li'):
@@ -326,7 +327,7 @@ def populateFromHTML(show_id, entry_type, title="", jsonUrl=HULU_HTML_ITEMS):
   #figure out what type of slider to use
   try:
 	  for page in range(0,int(MAX_RESULTS)/5):
-		response = HTTP.Request(jsonUrl % (5, str(page+1), show_id, entry_type), errors='ignore', cacheTime=CACHE_INTERVAL, autoUpdate=True).content
+		response = HTTP.Request(jsonUrl % (5, str(page+1), show_id, entry_type), errors='ignore', cacheTime=CACHE_INTERVAL).content
 		if len(response) > 10:
 		  for e in HTML.ElementFromString(response).xpath("//li"):
 			id = e.xpath("a")[0].get("href")
@@ -363,7 +364,7 @@ def populateFromFeed(url, feedType="videos", sort="normal", title=""):
   else:
     vg = "List"
   dir = MediaContainer(viewGroup=vg, title2=title,httpCookies = HTTP.GetCookiesForURL('http://www.hulu.com/profile'))
-  feed = XML.ElementFromURL(url, errors='ignore', cacheTime=CACHE_INTERVAL, autoUpdate=True).xpath("//item")
+  feed = XML.ElementFromURL(url, errors='ignore', cacheTime=CACHE_INTERVAL).xpath("//item")
   if sort == "reverse":
     feed.reverse()
 
