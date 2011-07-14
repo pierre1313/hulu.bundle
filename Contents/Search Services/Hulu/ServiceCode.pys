@@ -61,22 +61,34 @@ def Search(query):
           title = title,
           show = show_title,
           duration = duration,
-          season = season,
-          index = episode,
+          season = int(season),
+          index = int(episode),
           originally_available_at = airdate,
           summary = desc,
           source_title = 'Hulu',
-          thumb = thumb
-        ))
-      except:
-        c.add(VideoClipObject(
-          title = title,
-          duration = duration,
-          summary = desc,
           thumb = thumb,
-          source_title = 'Hulu',
-          originally_available_at = airdate,
           url = playUrl
         ))
+      except:
+        if 'Movie' in details.xpath('//video/programming-type')[0].text:
+          c.add(MovieObject(
+            title = title,
+            duration = duration,
+            summary = desc,
+            thumb = thumb,
+            source_title = 'Hulu',
+            originally_available_at = airdate,
+            url = playUrl
+          ))
+        else:
+          c.add(VideoClipObject(
+            title = title,
+            duration = duration,
+            summary = desc,
+            thumb = thumb,
+            source_title = 'Hulu',
+            originally_available_at = airdate,
+            url = playUrl
+          ))
 
   return c

@@ -29,7 +29,7 @@
 	<key>PlexPluginMode</key>
 	<string>AlwaysOn</string>
 	<key>PlexPluginDevMode</key>
-	<string>1</string>
+	<string>0</string>
 	<key>PlexURLServices</key>
 	<dict>
 		<key>Hulu</key>
