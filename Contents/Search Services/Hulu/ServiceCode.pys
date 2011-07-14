@@ -22,19 +22,19 @@ def Search(query):
           f = opener.open(request)
           if f.status == 301 or f.status == 302:
 		    playUrl = f.url
-		    playUrl = HTTP.Request(playUrl).xpath("//meta[@'property=og:url']")[0].get('content')
+		    playUrl = HTTP.Request(playUrl, cacheTime=CACHE_INTERVAL).xpath("//meta[@'property=og:url']")[0].get('content')
         except:
           pass
 		  
       api_address = "http://www.hulu.com/api/oembed.json?url="+playUrl
       try:
-        jsonObj = JSON.ObjectFromURL(api_address)
+        jsonObj = JSON.ObjectFromURL(api_address, cacheTime=CACHE_INTERVAL)
       except: 
-        jsonObj = JSON.ObjectFromURL(api_address.rsplit('/',1)[0])
+        jsonObj = JSON.ObjectFromURL(api_address.rsplit('/',1)[0], cacheTime=CACHE_INTERVAL)
 		  
       eid = jsonObj['embed_url'].split('embed/')[1].split('/')[0]
 
-      details = XML.ElementFromURL(HULU_ASSETS %eid)
+      details = XML.ElementFromURL(HULU_ASSETS %eid, cacheTime=CACHE_INTERVAL)
 	  
       desc = details.xpath('//video/description')[0].text
       try:
