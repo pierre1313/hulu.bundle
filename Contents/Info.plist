@@ -29,7 +29,7 @@
 	<key>PlexPluginMode</key>
 	<string>AlwaysOn</string>
 	<key>PlexSearchServices</key>
-    <dict>
+        <dict>
 		<key>Hulu</key>
 		<string>com.plexapp.search.hulu</string>
 	</dict>

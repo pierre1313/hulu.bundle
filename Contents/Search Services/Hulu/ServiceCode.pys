@@ -22,19 +22,19 @@ def Search(query):
           f = opener.open(request)
           if f.status == 301 or f.status == 302:
 		    playUrl = f.url
-		    playUrl = HTTP.Request(playUrl).xpath("//meta[@'property=og:url']")[0].get('content')
+		    playUrl = HTTP.Request(playUrl, cacheTime=CACHE_INTERVAL).xpath("//meta[@'property=og:url']")[0].get('content')
         except:
           pass
 		  
       api_address = "http://www.hulu.com/api/oembed.json?url="+playUrl
       try:
-        jsonObj = JSON.ObjectFromURL(api_address)
+        jsonObj = JSON.ObjectFromURL(api_address, cacheTime=CACHE_INTERVAL)
       except: 
-        jsonObj = JSON.ObjectFromURL(api_address.rsplit('/',1)[0])
+        jsonObj = JSON.ObjectFromURL(api_address.rsplit('/',1)[0], cacheTime=CACHE_INTERVAL)
 		  
       eid = jsonObj['embed_url'].split('embed/')[1].split('/')[0]
 
-      details = XML.ElementFromURL(HULU_ASSETS %eid)
+      details = XML.ElementFromURL(HULU_ASSETS %eid, cacheTime=CACHE_INTERVAL)
 	  
       desc = details.xpath('//video/description')[0].text
       try:
@@ -61,22 +61,34 @@ def Search(query):
           title = title,
           show = show_title,
           duration = duration,
-          season = season,
-          index = episode,
+          season = int(season),
+          index = int(episode),
           originally_available_at = airdate,
           summary = desc,
           source_title = 'Hulu',
-          thumb = thumb
-        ))
-      except:
-        c.add(VideoClipObject(
-          title = title,
-          duration = duration,
-          summary = desc,
           thumb = thumb,
-          source_title = 'Hulu',
-          originally_available_at = airdate,
           url = playUrl
         ))
+      except:
+        if 'Movie' in details.xpath('//video/programming-type')[0].text:
+          c.add(MovieObject(
+            title = title,
+            duration = duration,
+            summary = desc,
+            thumb = thumb,
+            source_title = 'Hulu',
+            originally_available_at = airdate,
+            url = playUrl
+          ))
+        else:
+          c.add(VideoClipObject(
+            title = title,
+            duration = duration,
+            summary = desc,
+            thumb = thumb,
+            source_title = 'Hulu',
+            originally_available_at = airdate,
+            url = playUrl
+          ))
 
   return c
