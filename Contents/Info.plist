@@ -33,5 +33,12 @@
 		<key>Hulu</key>
 		<string>com.plexapp.search.hulu</string>
 	</dict>
+	<key>PlexClientCapabilities</key>
+	<dict>
+		<key>protocols</key>
+		<array>
+			<string>webkit</string>
+		</array>
+	</dict>
 </dict>
 </plist>
