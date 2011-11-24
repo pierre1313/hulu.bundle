@@ -293,13 +293,32 @@ def queue(sender, feedUrl="", sort="normal", feedType="videos", xp=""):
   feed = HTTP.Request(feedUrl).content
 #  Log(feed)
   for show in HTML.ElementFromString(feed).xpath(".//div[@id='queue']//div[contains(@class,'show-container')]"):
-    Log(HTML.StringFromElement(show))
+    #Log(HTML.StringFromElement(show))
     thumb = show.xpath(".//img[@class='thumbnail']")[0].get('src')
     for episode in show.xpath(".//a[contains(@class,'show-thumb')]"):
 #      Log(HTML.StringFromElement(episode))
       title = episode.text
       url = episode.get('href')
-      dir.Append(Function(DirectoryItem(tv_shows_listings, title=title, subtitle='',  thumb=thumb), showUrl=url, fromType="html"))
+      api_address = "http://www.hulu.com/api/oembed.json?url="+url
+      try:
+        jsonObj = JSON.ObjectFromURL(api_address)
+      except:
+        jsonObj = JSON.ObjectFromURL(api_address.rsplit('/')[0])
+      eid = jsonObj['embed_url'].split('embed/')[1].split('/')[0]
+    
+      details = XML.ElementFromURL(HULU_ASSETS %eid)
+  
+      desc = details.xpath('//video/description')[0].text
+      subtitle =  details.xpath('//video/copyright')[0].text
+      duration =  int(float(details.xpath('//video/duration')[0].text)*1000)
+      thumb = details.xpath('//video/thumbnail-url')[0].text
+      art = ""
+      rating =  float(details.xpath('//video/user-star-rating')[0].text)
+      plusonly =  details.xpath('//video/is-plus-web-only')[0].text
+      title = details.xpath('//video/title')[0].text
+ 
+      dir.Append(WebVideoItem(url, title=title, summary=desc, subtitle=subtitle, duration=duration, thumb=thumb, art=art, rating=rating))
+#      dir.Append(Function(DirectoryItem(tv_shows_listings, title=title, subtitle='',  thumb=thumb), showUrl=url, fromType="html"))
   return dir  
 
 ####################################################################################################
@@ -417,7 +436,7 @@ def populateFromHTML(show_id, entry_type, title="", jsonUrl=HULU_HTML_ITEMS):
 		response = HTTP.Request(jsonUrl % (5, str(page+1), show_id, entry_type), errors='ignore', cacheTime=CACHE_INTERVAL).content
 		if len(response) > 10:
 		  for e in HTML.ElementFromString(response).xpath("//li"):
-			Log(HTML.StringFromElement(e))
+			#Log(HTML.StringFromElement(e))
 			id = e.xpath(".//a")[0].get("href")
 			show_num = id.split("/")[-2]
 			info = JSON.ObjectFromURL(HULU_BASE_URL + "videos/info/" + show_num, cacheTime=LONG_CACHE_INTERVAL)
